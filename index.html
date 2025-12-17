@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品设计作品集 | Product Design Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script>
+        // 定义错误处理函数
+        function handleImageError(img) {
+            img.style.display = 'none';
+            const fallback = img.nextElementSibling;
+            if (fallback && fallback.classList.contains('img-fallback')) {
+                const existingErrors = fallback.querySelectorAll('.error-msg, .tip');
+                existingErrors.forEach(el => el.remove());
+
+                const errorMsg = document.createElement('p');
+                errorMsg.className = 'error-msg';
+                errorMsg.textContent = '❌ 加载失败';
+                fallback.appendChild(errorMsg);
+
+                const tip = document.createElement('p');
+                tip.className = 'tip';
+                tip.style.fontSize = '0.65rem';
+                
+                // 更详细的错误提示，帮助用户排查
+                const src = img.getAttribute('src');
+                tip.innerHTML = `请检查文件名是否为: <br><strong style="color:#333">${src}</strong><br>(注意英文大小写)`;
+                
+                fallback.appendChild(tip);
+                fallback.style.display = 'flex';
+            }
+        }
+
+        // 联系人弹窗控制函数
+        function openContactModal(e) {
+            if(e) e.preventDefault();
+            const modal = document.getElementById('contactModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }
+
+        function closeContactModal() {
+            const modal = document.getElementById('contactModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0a0a0a;
+            color: #1a1a1a;
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+        }
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* ------------------- 动画系统 ------------------- */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+        }
+        .reveal-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .animate-stagger-1 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.2s; }
+        .animate-stagger-2 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.4s; }
+        .animate-stagger-3 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.6s; }
+        .animate-stagger-4 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.8s; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes drop {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* ------------------- 组件样式 ------------------- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .image-container {
+            overflow: hidden;
+            background-color: #f5f5f5; 
+            position: relative;
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s ease;
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+            display: block; 
+            z-index: 1;
+            padding: 20px;
+        }
+        
+        .group:hover .image-container {
+            background-color: #fff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+        
+        .group:hover .image-container img {
+            transform: scale(1.06);
+        }
+        
+        .img-label {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.6rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            z-index: 10;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .group:hover .img-label {
+            opacity: 1;
+        }
+
+        .img-fallback {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #f8fafc; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            padding: 1rem; z-index: 0; color: #94a3b8; border: 1px dashed #e2e8f0;
+        }
+        .img-fallback span { font-size: 2rem; margin-bottom: 0.5rem; }
+        .img-fallback p.filename { font-size: 0.75rem; font-family: monospace; background: #fff; padding: 0.25rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; word-break: break-all; }
+        .img-fallback p.error-msg { color: #ef4444; font-weight: bold; font-size: 0.8rem; margin-top: 0.5rem; }
+    </style>
+</head>
+<body class="antialiased selection:bg-gray-200 selection:text-black">
+
+    <!-- 独立封面 Section (全黑主题) -->
+    <section class="h-screen w-full flex flex-col justify-between p-8 md:p-16 fixed top-0 left-0 z-0 bg-[#0a0a0a] text-white transition-transform duration-500 ease-out" id="cover">
+        <header class="flex justify-between items-start w-full animate-stagger-1">
+            <div>
+                <h1 class="text-xs font-bold tracking-[0.2em] uppercase mb-1">Portfolio</h1>
+                <p class="text-[10px] text-gray-400 tracking-widest">2024 COLLECTION</p>
+            </div>
+            <div class="text-right hidden md:block">
+                <p class="text-[10px] font-medium tracking-widest text-gray-400">DESIGN / ART / CONCEPT</p>
+            </div>
+        </header>
+
+        <div class="flex-grow flex flex-col justify-center items-center z-10">
+            <h2 class="text-6xl md:text-8xl lg:text-9xl font-light serif tracking-tight text-center leading-none animate-stagger-2">
+                Design <br> <span class="italic font-normal text-gray-500">Chronicles</span>
+            </h2>
+            <div class="w-16 h-[1px] bg-white/20 mt-12 mb-6 animate-stagger-3"></div>
+            <p class="text-sm md:text-base font-light text-gray-400 tracking-wide max-w-md text-center animate-stagger-3">
+                从原图灵感到最终产品的演变<br>From Inspiration to Realization
+            </p>
+        </div>
+
+        <div class="w-full flex justify-center pb-8 cursor-pointer animate-stagger-4" onclick="scrollToContent()">
+            <div class="flex flex-col items-center gap-2 group">
+                <span class="text-[10px] tracking-[0.2em] uppercase text-gray-500 group-hover:text-white transition-colors">Enter</span>
+                <div class="w-[1px] h-12 bg-gray-800 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-full bg-white animate-[drop_2s_infinite]"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Spacer for Parallax -->
+    <div class="h-screen"></div>
+
+    <!-- 主要内容区域 (白色主题) -->
+    <main class="relative z-20 bg-white min-h-screen rounded-t-[40px] mt-[-40px] pt-20 pb-0 px-6 md:px-12 lg:px-24" id="content">
+        <div class="max-w-screen-2xl mx-auto">
+            
+            <!-- Intro Text -->
+            <div class="flex flex-col md:flex-row justify-between items-end mb-32 border-b border-black/5 pb-12 reveal-on-scroll">
+                <h3 class="text-4xl md:text-6xl font-light leading-tight max-w-3xl text-black">
+                    精选作品辑录 <br>
+                    <span class="serif italic text-gray-300 text-3xl md:text-5xl">Selected Works</span>
+                </h3>
+                <div class="mt-8 md:mt-0 text-right">
+                    <p class="text-xs font-bold tracking-widest uppercase mb-2 text-black">Process</p>
+                    <ul class="text-sm text-gray-500 space-y-1 font-light">
+                        <li>Original Concept → Final Product</li>
+                        <li>Visual Exploration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Content Projects -->
+            <div class="flex flex-col gap-40 mb-32">
+
+                <!-- Project 01 -->
+                <article class="group reveal-on-scroll">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
+                        <div>
+                            <span class="text-xs font-bold tracking-widest text-black mb-1 block">01 / CONCEPT</span>
+                            <h4 class="text-3xl md:text-4xl font-serif">Street Cat Vibes</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Exploring urban feline aesthetics through product form.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Original / 原图</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p1-origin.jpg" alt="p1-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>🖼️</span><p class="filename">p1-origin.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Product / 成品</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p1-product.jpg" alt="p1-product" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p1-product.jpg</p></div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 02 -->
+                <article class="group reveal-on-scroll">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
+                        <div>
+                            <span class="text-xs font-bold tracking-widest text-black mb-1 block">02 / BRANDING</span>
+                            <h4 class="text-3xl md:text-4xl font-serif">Quichis Design</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Minimalist branding integration.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
+                        <div class="image-container w-full h-[500px] md:h-full order-1 md:order-1">
+                            <span class="img-label">Original / 原图</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>🖼️</span><p class="filename">p2-origin.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full order-2 md:order-2">
+                            <span class="img-label">Product / 成品</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p2-product.jpg</p></div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 03 -->
+                <article class="group reveal-on-scroll">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
+                        <div>
+                            <span class="text-xs font-bold tracking-widest text-black mb-1 block">03 / TYPOGRAPHY</span>
+                            <h4 class="text-3xl md:text-4xl font-serif">Cool Anime Vibes</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Typography driven visual identity.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Original / 原图</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>🖼️</span><p class="filename">p3-origin.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Product Detail 1</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p3-product-1.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Product Detail 2</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p3-product-2.jpg</p></div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 04 -->
+                <article class="group reveal-on-scroll">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
+                        <div>
+                            <span class="text-xs font-bold tracking-widest text-black mb-1 block">04 / VISUAL ART</span>
+                            <h4 class="text-3xl md:text-4xl font-serif">Ice Heaven Series</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Cool tones and atmospheric design.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Product View A</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p4-product-1.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full">
+                            <span class="img-label">Product View B</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>✨</span><p class="filename">p4-product-2.jpg</p></div>
+                        </div>
+                        <div class="image-container w-full h-[500px] md:h-full order-first md:order-last">
+                            <span class="img-label">Original / 原图</span>
+                            <!-- 已更新为英文名 -->
+                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-fallback"><span>🖼️</span><p class="filename">p4-origin.jpg</p></div>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+
+        <footer class="bg-[#0a0a0a] text-white -mx-6 md:-mx-12 lg:-mx-24 px-6 md:px-12 lg:px-24 py-24 rounded-t-[40px] relative z-30">
+            <div class="max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div class="mb-12 md:mb-0">
+                    <h2 class="text-3xl md:text-5xl font-serif mb-4">Let's Create Together</h2>
+                    <p class="text-gray-500 max-w-sm">Thank you for viewing. Feel free to reach out for collaborations.</p>
+                </div>
+                <div class="flex flex-col items-end gap-4">
+                    <a href="#" onclick="openContactModal(event)" class="text-2xl hover:text-gray-400 transition-colors">Email Me ↗</a>
+                    <div class="flex gap-6 mt-4 text-xs tracking-widest uppercase text-gray-500">
+                        <a href="#" class="hover:text-white transition-colors">Behance</a>
+                        <a href="#" class="hover:text-white transition-colors">Instagram</a>
+                        <a href="#" class="hover:text-white transition-colors">LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-16 pt-8 flex justify-between text-[10px] text-gray-600 tracking-widest uppercase">
+                <p>&copy; 2024 Design Portfolio</p>
+                <p>All Rights Reserved</p>
+            </div>
+        </footer>
+    </main>
+
+    <!-- 联系人弹窗 Modal -->
+    <div id="contactModal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeContactModal()"></div>
+        <div class="bg-white p-8 md:p-12 rounded-none relative z-10 max-w-md w-full mx-4 shadow-2xl transform scale-95 opacity-0 transition-all duration-300 border border-gray-100" id="modalContent">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h3 class="text-2xl font-serif mb-8 text-black border-b border-gray-100 pb-4">Contact Info</h3>
+            <div class="space-y-6">
+                <div class="group cursor-default">
+                    <p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Email</p>
+                    <p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">940509951@qq.com</p>
+                </div>
+                <div class="group cursor-default">
+                    <p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Phone</p>
+                    <p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">18428386186</p>
+                </div>
+            </div>
+            <button onclick="closeContactModal()" class="mt-10 w-full bg-black text-white py-4 hover:bg-gray-800 transition-colors uppercase tracking-[0.2em] text-[10px] font-bold">
+                Close Dialog
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function scrollToContent() {
+            document.getElementById('content').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.scrollY;
+            const cover = document.getElementById('cover');
+            if (scrollPosition < window.innerHeight) {
+                cover.style.transform = `translateY(-${scrollPosition * 0.3}px)`;
+                cover.style.opacity = 1 - (scrollPosition / window.innerHeight * 1.5);
+            }
+        });
+    </script>
+</body>
+</html>
