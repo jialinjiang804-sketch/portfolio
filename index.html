@@ -4,29 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>产品设计作品集 | Product Design Portfolio</title>
+    <!-- Tailwind CSS (通过 CDN 加载，部署到 GitHub Pages 可正常使用) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <script>
-        // 定义错误处理函数
+        // 定义错误处理函数 - 生产环境版本
         function handleImageError(img) {
+            // 隐藏加载失败的图片标签
             img.style.display = 'none';
+            
+            // 显示下方的 Fallback 占位符
             const fallback = img.nextElementSibling;
             if (fallback && fallback.classList.contains('img-fallback')) {
+                // 清理旧信息
                 const existingErrors = fallback.querySelectorAll('.error-msg, .tip');
                 existingErrors.forEach(el => el.remove());
 
+                // 显示错误标题
                 const errorMsg = document.createElement('p');
                 errorMsg.className = 'error-msg';
                 errorMsg.textContent = '❌ 加载失败';
                 fallback.appendChild(errorMsg);
 
+                // 显示调试建议 (适配 GitHub Pages)
                 const tip = document.createElement('p');
                 tip.className = 'tip';
                 tip.style.fontSize = '0.65rem';
                 
-                // 更详细的错误提示，帮助用户排查
                 const src = img.getAttribute('src');
-                tip.innerHTML = `请检查文件名是否为: <br><strong style="color:#333">${src}</strong><br>(注意英文大小写)`;
+                tip.innerHTML = `无法加载: <strong style="color:#333">${src}</strong><br>请检查GitHub仓库中是否有此文件<br>(注意Linux系统严格区分大小写)`;
                 
                 fallback.appendChild(tip);
                 fallback.style.display = 'flex';
@@ -229,13 +236,12 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 已更新为英文名 -->
+                            <!-- 使用英文文件名，GitHub Pages 将直接加载仓库中的这些文件 -->
                             <img src="p1-origin.jpg" alt="p1-origin" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p1-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product / 成品</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p1-product.jpg" alt="p1-product" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p1-product.jpg</p></div>
                         </div>
@@ -255,13 +261,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full order-1 md:order-1">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p2-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-2 md:order-2">
                             <span class="img-label">Product / 成品</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p2-product.jpg" alt="p2-product" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p2-product.jpg</p></div>
                         </div>
@@ -281,19 +285,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p3-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 1</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p3-product-1.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 2</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p3-product-2.jpg</p></div>
                         </div>
@@ -313,19 +314,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View A</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p4-product-1.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View B</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p4-product-2.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-first md:order-last">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 已更新为英文名 -->
                             <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p4-origin.jpg</p></div>
                         </div>
