@@ -5,74 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>产品设计作品集 | Product Design Portfolio</title>
     
-    <!-- 1. 彻底移除 Google 字体预连接 (国内访问卡顿的根源) -->
-    <!-- <link rel="preconnect" href="https://fonts.googleapis.com"> -->
-    <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
-
-    <!-- 2. Tailwind CSS -->
-    <!-- 注意：为了确保预览成功，这里暂时使用官方 CDN。 -->
-    <!-- 如果您部署到 GitHub Pages 后国内访问很慢，请将下面的 src 换成： -->
-    <!-- https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/tailwindcss/3.4.1/script.min.js -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. 使用国内字节跳动 CDN 加速 Tailwind (解决样式加载卡顿) -->
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/tailwindcss/3.4.1/script.min.js"></script>
     
-    <!-- 3. 强制预加载首屏图片 -->
-    <link rel="preload" as="image" href="p1-origin.jpg">
-    <link rel="preload" as="image" href="p1-product.jpg">
+    <!-- 2. 如果字节跳动挂了，尝试官方 CDN 作为备用 (虽慢但能用) -->
+    <script>
+        if (typeof tailwind === 'undefined') {
+            document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+        }
+    </script>
 
     <script>
-        // 安全检查：防止 Tailwind 加载失败导致报错
-        if (typeof tailwind !== 'undefined') {
-            // 配置 Tailwind 使用系统字体 (无需下载任何字体文件)
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-                            serif: ['Georgia', '"Times New Roman"', '"Songti SC"', '"SimSun"', 'serif'],
+        // 配置 Tailwind 使用系统字体 (无需下载任何字体文件，解决字体卡顿)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof tailwind !== 'undefined') {
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            fontFamily: {
+                                sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'Arial', 'sans-serif'],
+                                serif: ['Georgia', '"Times New Roman"', '"Songti SC"', '"SimSun"', 'serif'],
+                            }
                         }
                     }
                 }
             }
-        } else {
-            console.warn('Tailwind CSS 未能加载，请检查网络连接。');
-        }
+        });
 
-        // 加载逻辑
-        document.addEventListener('DOMContentLoaded', () => {
+        // ----------------- 核心加载逻辑 -----------------
+
+        // 页面结构加载完立即移除全局遮罩 (不等图片)
+        window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const pageLoader = document.getElementById('page-loader');
                 if (pageLoader) {
                     pageLoader.style.opacity = '0';
-                    setTimeout(() => {
-                        pageLoader.style.display = 'none';
-                    }, 500);
+                    setTimeout(() => { pageLoader.style.display = 'none'; }, 500);
                 }
-            }, 300);
+            }, 200); // 极速响应
         });
 
+        // 图片加载成功
         function handleImageLoad(img) {
             img.classList.remove('opacity-0');
             img.classList.add('opacity-100');
-            const loader = img.parentElement.querySelector('.local-spinner');
+            // 隐藏该图片下方的 loading 动画
+            const loader = img.parentElement.querySelector('.local-spinner-wrapper');
             if (loader) loader.style.display = 'none';
+            // 清除超时计时器
+            if (img.dataset.timer) clearTimeout(parseInt(img.dataset.timer));
         }
 
+        // 图片加载失败 (或超时)
         function handleImageError(img) {
-            img.style.display = 'none';
-            const loader = img.parentElement.querySelector('.local-spinner');
+            const loader = img.parentElement.querySelector('.local-spinner-wrapper');
             if (loader) loader.style.display = 'none';
             
             const fallback = img.parentElement.querySelector('.img-fallback');
             if (fallback) {
                 fallback.innerHTML = ''; 
-                const errorMsg = document.createElement('p');
-                errorMsg.className = 'error-msg';
-                errorMsg.innerHTML = '❌ 加载失败';
-                fallback.appendChild(errorMsg);
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col items-center gap-2';
+
+                const icon = document.createElement('span');
+                icon.textContent = '📡';
+                icon.style.fontSize = '24px';
+
+                const text = document.createElement('p');
+                text.className = 'text-xs text-gray-400';
+                text.textContent = '图片加载慢';
+
+                // 添加重试按钮
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-xs rounded transition-colors';
+                retryBtn.textContent = '点击重试';
+                retryBtn.onclick = function() {
+                    fallback.style.display = 'none';
+                    if (loader) loader.style.display = 'flex';
+                    // 重新加载图片技巧：加个时间戳
+                    const src = img.getAttribute('src').split('?')[0];
+                    img.src = src + '?t=' + new Date().getTime();
+                    img.style.display = 'block';
+                };
+
+                wrapper.appendChild(icon);
+                wrapper.appendChild(text);
+                wrapper.appendChild(retryBtn);
+                fallback.appendChild(wrapper);
                 fallback.style.display = 'flex';
             }
+            img.style.display = 'none';
         }
 
+        // 图片加载监控 (超时检测)
+        function monitorImage(img) {
+            // 如果 8 秒还没加载完，视为网络拥堵，显示重试提示
+            const timer = setTimeout(() => {
+                if (img.complete && img.naturalHeight !== 0) return;
+                handleImageError(img);
+            }, 8000);
+            img.dataset.timer = timer;
+        }
+
+        // 弹窗逻辑
         function openContactModal(e) {
             if(e) e.preventDefault();
             const modal = document.getElementById('contactModal');
@@ -94,60 +130,95 @@
     </script>
 
     <style>
-        /* 样式保持不变，字体使用系统栈 */
+        /* 基础样式 - 确保即使 Tailwind 加载失败也能看 */
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
             background-color: #0a0a0a; 
             color: #1a1a1a; 
-            scroll-behavior: smooth; 
-            overflow-x: hidden; 
+            margin: 0;
+            overflow-x: hidden;
         }
-        .serif { 
-            font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
-        }
+        .serif { font-family: Georgia, serif; }
 
-        #page-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0a0a0a; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 0.5s ease-out; }
+        /* 全局 Loading (黑底白圈) */
+        #page-loader { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: #0a0a0a; z-index: 9999; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            color: white; transition: opacity 0.5s ease-out; 
+        }
         
-        .local-spinner {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 30px; height: 30px;
-            border: 2px solid #ddd; border-top-color: #333; border-radius: 50%;
-            animation: spin 0.8s linear infinite; z-index: 5;
+        /* 局部 Loading (图片位占位) */
+        .local-spinner-wrapper {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            background-color: #f9f9f9; z-index: 5;
         }
 
-        .spinner-global { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .reveal-on-scroll { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; }
+        /* 布局与动画 */
+        .reveal-on-scroll { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal-on-scroll.visible { opacity: 1; transform: translateY(0); }
-        .animate-stagger-1 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.2s; }
-        .animate-stagger-2 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.4s; }
-        .animate-stagger-3 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.6s; }
-        .animate-stagger-4 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.8s; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-stagger-1 { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; animation-delay: 0.1s; }
+        .animate-stagger-2 { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; animation-delay: 0.2s; }
+        .animate-stagger-3 { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; animation-delay: 0.3s; }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes drop { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
 
-        ::-webkit-scrollbar { width: 6px; }
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
         
-        .image-container { overflow: hidden; background-color: #f5f5f5; position: relative; display: flex; align-items: center; justify-content: center; transition: all 0.5s ease; }
-        .image-container img { width: 100%; height: 100%; object-fit: contain; display: block; z-index: 10; padding: 20px; transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease; }
-        .group:hover .image-container { background-color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
-        .group:hover .image-container img { transform: scale(1.06); }
-        .img-label { position: absolute; top: 1.5rem; left: 1.5rem; background: rgba(0, 0, 0, 0.85); color: white; padding: 0.35rem 0.85rem; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; z-index: 20; opacity: 0.8; transition: opacity 0.3s; }
-        .group:hover .img-label { opacity: 1; }
-        .img-fallback { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8fafc; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem; z-index: 0; color: #94a3b8; border: 1px dashed #e2e8f0; }
-        .img-fallback .error-msg { color: #ef4444; font-weight: bold; font-size: 0.8rem; }
+        /* 图片容器优化 */
+        .image-container { 
+            overflow: hidden; background-color: #f5f5f5; position: relative; 
+            display: flex; align-items: center; justify-content: center; 
+            border: 1px solid #eee; /* 增加边框，防止图片加载不出来时看起来像空白 */
+        }
+        .image-container img { 
+            width: 100%; height: 100%; object-fit: contain; display: block; z-index: 10; padding: 15px; 
+            transition: transform 0.8s ease, opacity 0.5s ease; 
+        }
+        .group:hover .image-container { background-color: #fff; border-color: #ddd; }
+        .group:hover .image-container img { transform: scale(1.03); }
+        
+        /* 标签 */
+        .img-label { 
+            position: absolute; top: 1rem; left: 1rem; 
+            background: rgba(0,0,0,0.8); color: white; padding: 4px 10px; 
+            font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; 
+            z-index: 20; pointer-events: none;
+        }
+
+        /* 错误提示 */
+        .img-fallback { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: #f8fafc; display: none; 
+            flex-direction: column; align-items: center; justify-content: center; 
+            text-align: center; padding: 1rem; z-index: 4; 
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-gray-200 selection:text-black">
 
+    <!-- 全局 Loading: 使用内嵌 SVG 确保 0 延迟显示 -->
     <div id="page-loader">
-        <div class="spinner-global"></div>
-        <p class="text-xs tracking-[0.3em] uppercase animate-pulse">Loading</p>
+        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#fff">
+            <g fill="none" fill-rule="evenodd">
+                <g transform="translate(1 1)" stroke-width="2">
+                    <circle stroke-opacity=".5" cx="24" cy="24" r="6"/>
+                    <path d="M36 18c0-9.94-8.06-18-18-18">
+                        <animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/>
+                    </path>
+                </g>
+            </g>
+        </svg>
+        <p class="mt-4 text-[10px] tracking-[0.3em] uppercase opacity-70">Loading</p>
     </div>
 
+    <!-- 封面 -->
     <section class="h-screen w-full flex flex-col justify-between p-8 md:p-16 fixed top-0 left-0 z-0 bg-[#0a0a0a] text-white transition-transform duration-500 ease-out" id="cover">
         <header class="flex justify-between items-start w-full animate-stagger-1">
             <div>
@@ -169,7 +240,7 @@
             </p>
         </div>
 
-        <div class="w-full flex justify-center pb-8 cursor-pointer animate-stagger-4" onclick="scrollToContent()">
+        <div class="w-full flex justify-center pb-8 cursor-pointer animate-stagger-1" onclick="scrollToContent()">
             <div class="flex flex-col items-center gap-2 group">
                 <span class="text-[10px] tracking-[0.2em] uppercase text-gray-500 group-hover:text-white transition-colors">Enter</span>
                 <div class="w-[1px] h-12 bg-gray-800 relative overflow-hidden">
@@ -198,26 +269,27 @@
 
             <div class="flex flex-col gap-40 mb-32">
 
-                <!-- Project 01: 首页图 -->
+                <!-- 每一张图片都加入了超时检测 (monitorImage) 和局部 SVG Loading -->
+                
+                <!-- Project 01 -->
                 <article class="group reveal-on-scroll">
                     <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
                         <div>
                             <span class="text-xs font-bold tracking-widest text-black mb-1 block">01 / CONCEPT</span>
                             <h4 class="text-3xl md:text-4xl font-serif">Street Cat Vibes</h4>
                         </div>
-                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Exploring urban feline aesthetics.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <div class="local-spinner"></div>
-                            <img src="p1-origin.jpg" alt="p1-origin" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p1-origin.jpg" alt="p1-origin" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product / 成品</span>
-                            <div class="local-spinner"></div>
-                            <img src="p1-product.jpg" alt="p1-product" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p1-product.jpg" alt="p1-product" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                     </div>
@@ -230,19 +302,18 @@
                             <span class="text-xs font-bold tracking-widest text-black mb-1 block">02 / BRANDING</span>
                             <h4 class="text-3xl md:text-4xl font-serif">Quichis Design</h4>
                         </div>
-                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Minimalist branding integration.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full order-1 md:order-1">
                             <span class="img-label">Original / 原图</span>
-                            <div class="local-spinner"></div>
-                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-2 md:order-2">
                             <span class="img-label">Product / 成品</span>
-                            <div class="local-spinner"></div>
-                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                     </div>
@@ -255,25 +326,24 @@
                             <span class="text-xs font-bold tracking-widest text-black mb-1 block">03 / TYPOGRAPHY</span>
                             <h4 class="text-3xl md:text-4xl font-serif">Cool Anime Vibes</h4>
                         </div>
-                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Typography driven visual identity.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <div class="local-spinner"></div>
-                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 1</span>
-                            <div class="local-spinner"></div>
-                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 2</span>
-                            <div class="local-spinner"></div>
-                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                     </div>
@@ -286,25 +356,24 @@
                             <span class="text-xs font-bold tracking-widest text-black mb-1 block">04 / VISUAL ART</span>
                             <h4 class="text-3xl md:text-4xl font-serif">Ice Heaven Series</h4>
                         </div>
-                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Cool tones and atmospheric design.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View A</span>
-                            <div class="local-spinner"></div>
-                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View B</span>
-                            <div class="local-spinner"></div>
-                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-first md:order-last">
                             <span class="img-label">Original / 原图</span>
-                            <div class="local-spinner"></div>
-                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="local-spinner-wrapper"><svg width="30" height="30" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" stroke="#000"><g fill="none" fill-rule="evenodd"><g transform="translate(1 1)" stroke-width="2"><circle stroke-opacity=".2" cx="24" cy="24" r="24"/><path d="M48 24c0-13.255-10.745-24-24-24"><animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/></path></g></g></svg></div>
+                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)" onloadstart="monitorImage(this)">
                             <div class="img-fallback"></div>
                         </div>
                     </div>
