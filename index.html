@@ -4,43 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>产品设计作品集 | Product Design Portfolio</title>
-    <!-- Tailwind CSS (通过 CDN 加载，部署到 GitHub Pages 可正常使用) -->
+    
+    <!-- 1. 网络连接预热：提前与 CDN 建立连接 -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- 2. 关键优化：强制预加载首屏图片 (Preload) -->
+    <!-- 这会让手机浏览器在解析 HTML 的第一时间就开始下载图片，不再等待 -->
+    <link rel="preload" as="image" href="p1-origin.jpg">
+    <link rel="preload" as="image" href="p1-product.jpg">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
+    
+    <!-- Google Fonts (已添加 display=swap 防止阻塞文字显示) -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
     <script>
-        // 定义错误处理函数 - 生产环境版本
+        // 图片加载成功处理函数
+        function handleImageLoad(img) {
+            // 1. 显示图片（添加 opacity-100 类）
+            img.classList.remove('opacity-0');
+            img.classList.add('opacity-100');
+            
+            // 2. 隐藏加载动画
+            const loader = img.parentElement.querySelector('.img-loading');
+            if (loader) {
+                loader.style.display = 'none';
+            }
+        }
+
+        // 图片加载失败处理函数
         function handleImageError(img) {
-            // 隐藏加载失败的图片标签
             img.style.display = 'none';
             
-            // 显示下方的 Fallback 占位符
-            const fallback = img.nextElementSibling;
-            if (fallback && fallback.classList.contains('img-fallback')) {
-                // 清理旧信息
+            const loader = img.parentElement.querySelector('.img-loading');
+            if (loader) {
+                loader.style.display = 'none';
+            }
+            
+            const fallback = img.parentElement.querySelector('.img-fallback');
+            if (fallback) {
                 const existingErrors = fallback.querySelectorAll('.error-msg, .tip');
                 existingErrors.forEach(el => el.remove());
 
-                // 显示错误标题
                 const errorMsg = document.createElement('p');
                 errorMsg.className = 'error-msg';
                 errorMsg.textContent = '❌ 加载失败';
                 fallback.appendChild(errorMsg);
 
-                // 显示调试建议 (适配 GitHub Pages)
                 const tip = document.createElement('p');
                 tip.className = 'tip';
-                tip.style.fontSize = '0.65rem';
-                
                 const src = img.getAttribute('src');
-                tip.innerHTML = `无法加载: <strong style="color:#333">${src}</strong><br>请检查GitHub仓库中是否有此文件<br>(注意Linux系统严格区分大小写)`;
-                
+                tip.innerHTML = `无法加载: <strong>${src}</strong><br>请检查文件名大小写`;
                 fallback.appendChild(tip);
+                
                 fallback.style.display = 'flex';
             }
         }
 
-        // 联系人弹窗控制函数
         function openContactModal(e) {
             if(e) e.preventDefault();
             const modal = document.getElementById('contactModal');
@@ -99,6 +122,10 @@
             100% { transform: translateY(100%); }
         }
 
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* ------------------- 组件样式 ------------------- */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
@@ -119,12 +146,32 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease-in-out;
             display: block; 
-            z-index: 1;
+            z-index: 10;
             padding: 20px;
         }
         
+        .img-loading {
+            position: absolute;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: #f5f5f5;
+            color: #ccc;
+        }
+        .loader-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ddd;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
         .group:hover .image-container {
             background-color: #fff;
             box-shadow: 0 20px 40px rgba(0,0,0,0.08);
@@ -145,7 +192,7 @@
             font-weight: 500;
             letter-spacing: 0.15em;
             text-transform: uppercase;
-            z-index: 10;
+            z-index: 20;
             opacity: 0.8;
             transition: opacity 0.3s;
         }
@@ -155,13 +202,14 @@
 
         .img-fallback {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #f8fafc; display: flex; flex-direction: column;
+            background-color: #f8fafc; display: none; flex-direction: column;
             align-items: center; justify-content: center; text-align: center;
             padding: 1rem; z-index: 0; color: #94a3b8; border: 1px dashed #e2e8f0;
         }
         .img-fallback span { font-size: 2rem; margin-bottom: 0.5rem; }
         .img-fallback p.filename { font-size: 0.75rem; font-family: monospace; background: #fff; padding: 0.25rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; word-break: break-all; }
         .img-fallback p.error-msg { color: #ef4444; font-weight: bold; font-size: 0.8rem; margin-top: 0.5rem; }
+        .img-fallback p.tip { font-size: 0.65rem; color: #64748b; margin-top: 0.25rem; }
     </style>
 </head>
 <body class="antialiased selection:bg-gray-200 selection:text-black">
@@ -223,7 +271,7 @@
             <!-- Content Projects -->
             <div class="flex flex-col gap-40 mb-32">
 
-                <!-- Project 01 -->
+                <!-- Project 01: 首页图 - 关键优化：预加载生效区 -->
                 <article class="group reveal-on-scroll">
                     <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
                         <div>
@@ -236,13 +284,15 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 使用英文文件名，GitHub Pages 将直接加载仓库中的这些文件 -->
-                            <img src="p1-origin.jpg" alt="p1-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <!-- fetchpriority="high" 配合 head 中的 preload 使用 -->
+                            <img src="p1-origin.jpg" alt="p1-origin" fetchpriority="high" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p1-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product / 成品</span>
-                            <img src="p1-product.jpg" alt="p1-product" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p1-product.jpg" alt="p1-product" fetchpriority="high" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p1-product.jpg</p></div>
                         </div>
                     </div>
@@ -261,12 +311,14 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full order-1 md:order-1">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p2-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-2 md:order-2">
                             <span class="img-label">Product / 成品</span>
-                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p2-product.jpg</p></div>
                         </div>
                     </div>
@@ -285,17 +337,20 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p3-origin.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 1</span>
-                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p3-product-1.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 2</span>
-                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p3-product-2.jpg</p></div>
                         </div>
                     </div>
@@ -314,17 +369,20 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View A</span>
-                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p4-product-1.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View B</span>
-                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>✨</span><p class="filename">p4-product-2.jpg</p></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-first md:order-last">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" onerror="handleImageError(this)">
+                            <div class="img-loading"><div class="loader-spinner"></div></div>
+                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" decoding="async" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
                             <div class="img-fallback"><span>🖼️</span><p class="filename">p4-origin.jpg</p></div>
                         </div>
                     </div>
