@@ -5,28 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>产品设计作品集 | Product Design Portfolio</title>
     
-    <!-- 1. 移除谷歌字体引用 (这是导致国内卡顿的元凶) -->
-    <!-- 2. 保留 Tailwind CSS -->
+    <!-- 1. 彻底移除 Google 字体预连接 (国内访问卡顿的根源) -->
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com"> -->
+    <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+
+    <!-- 2. Tailwind CSS -->
+    <!-- 注意：为了确保预览成功，这里暂时使用官方 CDN。 -->
+    <!-- 如果您部署到 GitHub Pages 后国内访问很慢，请将下面的 src 换成： -->
+    <!-- https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/tailwindcss/3.4.1/script.min.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 3. 强制预加载首屏图片 (保留此优化) -->
+    <!-- 3. 强制预加载首屏图片 -->
     <link rel="preload" as="image" href="p1-origin.jpg">
     <link rel="preload" as="image" href="p1-product.jpg">
 
     <script>
-        // 配置 Tailwind 使用系统字体
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-                        serif: ['Georgia', '"Times New Roman"', '"Songti SC"', '"SimSun"', 'serif'],
+        // 安全检查：防止 Tailwind 加载失败导致报错
+        if (typeof tailwind !== 'undefined') {
+            // 配置 Tailwind 使用系统字体 (无需下载任何字体文件)
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                            serif: ['Georgia', '"Times New Roman"', '"Songti SC"', '"SimSun"', 'serif'],
+                        }
                     }
                 }
             }
+        } else {
+            console.warn('Tailwind CSS 未能加载，请检查网络连接。');
         }
 
-        // 加载逻辑保持不变
+        // 加载逻辑
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const pageLoader = document.getElementById('page-loader');
@@ -36,7 +47,7 @@
                         pageLoader.style.display = 'none';
                     }, 500);
                 }
-            }, 300); // 缩短等待时间
+            }, 300);
         });
 
         function handleImageLoad(img) {
@@ -83,7 +94,7 @@
     </script>
 
     <style>
-        /* 直接使用系统字体栈，无需下载 */
+        /* 样式保持不变，字体使用系统栈 */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
             background-color: #0a0a0a; 
@@ -95,7 +106,6 @@
             font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
         }
 
-        /* 全局加载屏 */
         #page-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0a0a0a; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 0.5s ease-out; }
         
         .local-spinner {
@@ -108,7 +118,6 @@
         .spinner-global { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 动画与布局 */
         .reveal-on-scroll { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; }
         .reveal-on-scroll.visible { opacity: 1; transform: translateY(0); }
         .animate-stagger-1 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.2s; }
@@ -134,13 +143,11 @@
 </head>
 <body class="antialiased selection:bg-gray-200 selection:text-black">
 
-    <!-- 全局 Loading -->
     <div id="page-loader">
         <div class="spinner-global"></div>
         <p class="text-xs tracking-[0.3em] uppercase animate-pulse">Loading</p>
     </div>
 
-    <!-- 封面 -->
     <section class="h-screen w-full flex flex-col justify-between p-8 md:p-16 fixed top-0 left-0 z-0 bg-[#0a0a0a] text-white transition-transform duration-500 ease-out" id="cover">
         <header class="flex justify-between items-start w-full animate-stagger-1">
             <div>
@@ -191,7 +198,7 @@
 
             <div class="flex flex-col gap-40 mb-32">
 
-                <!-- Project 01 -->
+                <!-- Project 01: 首页图 -->
                 <article class="group reveal-on-scroll">
                     <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-l-2 border-black pl-4">
                         <div>
