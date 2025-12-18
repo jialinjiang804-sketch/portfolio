@@ -4,43 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>产品设计作品集 | Product Design Portfolio</title>
-    <!-- Tailwind CSS (通过 CDN 加载，部署到 GitHub Pages 可正常使用) -->
+    
+    <!-- 1. 移除谷歌字体引用 (这是导致国内卡顿的元凶) -->
+    <!-- 2. 保留 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    <script>
-        // 定义错误处理函数 - 生产环境版本
-        function handleImageError(img) {
-            // 隐藏加载失败的图片标签
-            img.style.display = 'none';
-            
-            // 显示下方的 Fallback 占位符
-            const fallback = img.nextElementSibling;
-            if (fallback && fallback.classList.contains('img-fallback')) {
-                // 清理旧信息
-                const existingErrors = fallback.querySelectorAll('.error-msg, .tip');
-                existingErrors.forEach(el => el.remove());
+    
+    <!-- 3. 强制预加载首屏图片 (保留此优化) -->
+    <link rel="preload" as="image" href="p1-origin.jpg">
+    <link rel="preload" as="image" href="p1-product.jpg">
 
-                // 显示错误标题
+    <script>
+        // 配置 Tailwind 使用系统字体
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        serif: ['Georgia', '"Times New Roman"', '"Songti SC"', '"SimSun"', 'serif'],
+                    }
+                }
+            }
+        }
+
+        // 加载逻辑保持不变
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const pageLoader = document.getElementById('page-loader');
+                if (pageLoader) {
+                    pageLoader.style.opacity = '0';
+                    setTimeout(() => {
+                        pageLoader.style.display = 'none';
+                    }, 500);
+                }
+            }, 300); // 缩短等待时间
+        });
+
+        function handleImageLoad(img) {
+            img.classList.remove('opacity-0');
+            img.classList.add('opacity-100');
+            const loader = img.parentElement.querySelector('.local-spinner');
+            if (loader) loader.style.display = 'none';
+        }
+
+        function handleImageError(img) {
+            img.style.display = 'none';
+            const loader = img.parentElement.querySelector('.local-spinner');
+            if (loader) loader.style.display = 'none';
+            
+            const fallback = img.parentElement.querySelector('.img-fallback');
+            if (fallback) {
+                fallback.innerHTML = ''; 
                 const errorMsg = document.createElement('p');
                 errorMsg.className = 'error-msg';
-                errorMsg.textContent = '❌ 加载失败';
+                errorMsg.innerHTML = '❌ 加载失败';
                 fallback.appendChild(errorMsg);
-
-                // 显示调试建议 (适配 GitHub Pages)
-                const tip = document.createElement('p');
-                tip.className = 'tip';
-                tip.style.fontSize = '0.65rem';
-                
-                const src = img.getAttribute('src');
-                tip.innerHTML = `无法加载: <strong style="color:#333">${src}</strong><br>请检查GitHub仓库中是否有此文件<br>(注意Linux系统严格区分大小写)`;
-                
-                fallback.appendChild(tip);
                 fallback.style.display = 'flex';
             }
         }
 
-        // 联系人弹窗控制函数
         function openContactModal(e) {
             if(e) e.preventDefault();
             const modal = document.getElementById('contactModal');
@@ -60,113 +81,66 @@
             content.classList.add('scale-95', 'opacity-0');
         }
     </script>
+
     <style>
-        body {
-            font-family: 'Noto Sans SC', sans-serif;
-            background-color: #0a0a0a;
-            color: #1a1a1a;
-            scroll-behavior: smooth;
-            overflow-x: hidden;
+        /* 直接使用系统字体栈，无需下载 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background-color: #0a0a0a; 
+            color: #1a1a1a; 
+            scroll-behavior: smooth; 
+            overflow-x: hidden; 
         }
-        .serif {
-            font-family: 'Playfair Display', serif;
-        }
-
-        /* ------------------- 动画系统 ------------------- */
-        .reveal-on-scroll {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
-            will-change: transform, opacity;
-        }
-        .reveal-on-scroll.visible {
-            opacity: 1;
-            transform: translateY(0);
+        .serif { 
+            font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
         }
 
+        /* 全局加载屏 */
+        #page-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0a0a0a; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 0.5s ease-out; }
+        
+        .local-spinner {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 30px; height: 30px;
+            border: 2px solid #ddd; border-top-color: #333; border-radius: 50%;
+            animation: spin 0.8s linear infinite; z-index: 5;
+        }
+
+        .spinner-global { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 动画与布局 */
+        .reveal-on-scroll { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; }
+        .reveal-on-scroll.visible { opacity: 1; transform: translateY(0); }
         .animate-stagger-1 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.2s; }
         .animate-stagger-2 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.4s; }
         .animate-stagger-3 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.6s; }
         .animate-stagger-4 { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: 0.8s; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes drop { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes drop {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        /* ------------------- 组件样式 ------------------- */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
         
-        .image-container {
-            overflow: hidden;
-            background-color: #f5f5f5; 
-            position: relative;
-            display: flex; 
-            align-items: center;
-            justify-content: center;
-            transition: all 0.5s ease;
-        }
-        
-        .image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
-            display: block; 
-            z-index: 1;
-            padding: 20px;
-        }
-        
-        .group:hover .image-container {
-            background-color: #fff;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-        }
-        
-        .group:hover .image-container img {
-            transform: scale(1.06);
-        }
-        
-        .img-label {
-            position: absolute;
-            top: 1.5rem;
-            left: 1.5rem;
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 0.35rem 0.85rem;
-            font-size: 0.6rem;
-            font-weight: 500;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            z-index: 10;
-            opacity: 0.8;
-            transition: opacity 0.3s;
-        }
-        .group:hover .img-label {
-            opacity: 1;
-        }
-
-        .img-fallback {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #f8fafc; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
-            padding: 1rem; z-index: 0; color: #94a3b8; border: 1px dashed #e2e8f0;
-        }
-        .img-fallback span { font-size: 2rem; margin-bottom: 0.5rem; }
-        .img-fallback p.filename { font-size: 0.75rem; font-family: monospace; background: #fff; padding: 0.25rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; word-break: break-all; }
-        .img-fallback p.error-msg { color: #ef4444; font-weight: bold; font-size: 0.8rem; margin-top: 0.5rem; }
+        .image-container { overflow: hidden; background-color: #f5f5f5; position: relative; display: flex; align-items: center; justify-content: center; transition: all 0.5s ease; }
+        .image-container img { width: 100%; height: 100%; object-fit: contain; display: block; z-index: 10; padding: 20px; transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease; }
+        .group:hover .image-container { background-color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+        .group:hover .image-container img { transform: scale(1.06); }
+        .img-label { position: absolute; top: 1.5rem; left: 1.5rem; background: rgba(0, 0, 0, 0.85); color: white; padding: 0.35rem 0.85rem; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; z-index: 20; opacity: 0.8; transition: opacity 0.3s; }
+        .group:hover .img-label { opacity: 1; }
+        .img-fallback { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8fafc; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem; z-index: 0; color: #94a3b8; border: 1px dashed #e2e8f0; }
+        .img-fallback .error-msg { color: #ef4444; font-weight: bold; font-size: 0.8rem; }
     </style>
 </head>
 <body class="antialiased selection:bg-gray-200 selection:text-black">
 
-    <!-- 独立封面 Section (全黑主题) -->
+    <!-- 全局 Loading -->
+    <div id="page-loader">
+        <div class="spinner-global"></div>
+        <p class="text-xs tracking-[0.3em] uppercase animate-pulse">Loading</p>
+    </div>
+
+    <!-- 封面 -->
     <section class="h-screen w-full flex flex-col justify-between p-8 md:p-16 fixed top-0 left-0 z-0 bg-[#0a0a0a] text-white transition-transform duration-500 ease-out" id="cover">
         <header class="flex justify-between items-start w-full animate-stagger-1">
             <div>
@@ -198,18 +172,13 @@
         </div>
     </section>
 
-    <!-- Spacer for Parallax -->
     <div class="h-screen"></div>
 
-    <!-- 主要内容区域 (白色主题) -->
     <main class="relative z-20 bg-white min-h-screen rounded-t-[40px] mt-[-40px] pt-20 pb-0 px-6 md:px-12 lg:px-24" id="content">
         <div class="max-w-screen-2xl mx-auto">
-            
-            <!-- Intro Text -->
             <div class="flex flex-col md:flex-row justify-between items-end mb-32 border-b border-black/5 pb-12 reveal-on-scroll">
                 <h3 class="text-4xl md:text-6xl font-light leading-tight max-w-3xl text-black">
-                    精选作品辑录 <br>
-                    <span class="serif italic text-gray-300 text-3xl md:text-5xl">Selected Works</span>
+                    精选作品辑录 <br> <span class="serif italic text-gray-300 text-3xl md:text-5xl">Selected Works</span>
                 </h3>
                 <div class="mt-8 md:mt-0 text-right">
                     <p class="text-xs font-bold tracking-widest uppercase mb-2 text-black">Process</p>
@@ -220,7 +189,6 @@
                 </div>
             </div>
 
-            <!-- Content Projects -->
             <div class="flex flex-col gap-40 mb-32">
 
                 <!-- Project 01 -->
@@ -230,20 +198,20 @@
                             <span class="text-xs font-bold tracking-widest text-black mb-1 block">01 / CONCEPT</span>
                             <h4 class="text-3xl md:text-4xl font-serif">Street Cat Vibes</h4>
                         </div>
-                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Exploring urban feline aesthetics through product form.</p>
+                        <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Exploring urban feline aesthetics.</p>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <!-- 使用英文文件名，GitHub Pages 将直接加载仓库中的这些文件 -->
-                            <img src="p1-origin.jpg" alt="p1-origin" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>🖼️</span><p class="filename">p1-origin.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p1-origin.jpg" alt="p1-origin" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product / 成品</span>
-                            <img src="p1-product.jpg" alt="p1-product" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p1-product.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p1-product.jpg" alt="p1-product" fetchpriority="high" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                     </div>
                 </article>
@@ -257,17 +225,18 @@
                         </div>
                         <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Minimalist branding integration.</p>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full order-1 md:order-1">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>🖼️</span><p class="filename">p2-origin.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p2-origin.jpg" alt="p2-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-2 md:order-2">
                             <span class="img-label">Product / 成品</span>
-                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p2-product.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p2-product.jpg" alt="p2-product" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                     </div>
                 </article>
@@ -281,22 +250,24 @@
                         </div>
                         <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Typography driven visual identity.</p>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>🖼️</span><p class="filename">p3-origin.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p3-origin.jpg" alt="p3-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 1</span>
-                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p3-product-1.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p3-product-1.jpg" alt="p3-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product Detail 2</span>
-                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p3-product-2.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p3-product-2.jpg" alt="p3-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                     </div>
                 </article>
@@ -310,22 +281,24 @@
                         </div>
                         <p class="text-sm text-gray-400 mt-2 md:mt-0 max-w-xs text-right">Cool tones and atmospheric design.</p>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 h-auto md:h-[700px]">
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View A</span>
-                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p4-product-1.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p4-product-1.jpg" alt="p4-product-1" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full">
                             <span class="img-label">Product View B</span>
-                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>✨</span><p class="filename">p4-product-2.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p4-product-2.jpg" alt="p4-product-2" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                         <div class="image-container w-full h-[500px] md:h-full order-first md:order-last">
                             <span class="img-label">Original / 原图</span>
-                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" onerror="handleImageError(this)">
-                            <div class="img-fallback"><span>🖼️</span><p class="filename">p4-origin.jpg</p></div>
+                            <div class="local-spinner"></div>
+                            <img src="p4-origin.jpg" alt="p4-origin" loading="lazy" class="opacity-0" onload="handleImageLoad(this)" onerror="handleImageError(this)">
+                            <div class="img-fallback"></div>
                         </div>
                     </div>
                 </article>
@@ -355,54 +328,28 @@
         </footer>
     </main>
 
-    <!-- 联系人弹窗 Modal -->
+    <!-- Modal -->
     <div id="contactModal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeContactModal()"></div>
         <div class="bg-white p-8 md:p-12 rounded-none relative z-10 max-w-md w-full mx-4 shadow-2xl transform scale-95 opacity-0 transition-all duration-300 border border-gray-100" id="modalContent">
             <button onclick="closeContactModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <h3 class="text-2xl font-serif mb-8 text-black border-b border-gray-100 pb-4">Contact Info</h3>
             <div class="space-y-6">
-                <div class="group cursor-default">
-                    <p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Email</p>
-                    <p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">940509951@qq.com</p>
-                </div>
-                <div class="group cursor-default">
-                    <p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Phone</p>
-                    <p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">18428386186</p>
-                </div>
+                <div class="group cursor-default"><p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Email</p><p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">940509951@qq.com</p></div>
+                <div class="group cursor-default"><p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Phone</p><p class="text-xl md:text-2xl font-light select-all hover:text-gray-600 transition-colors">18428386186</p></div>
             </div>
-            <button onclick="closeContactModal()" class="mt-10 w-full bg-black text-white py-4 hover:bg-gray-800 transition-colors uppercase tracking-[0.2em] text-[10px] font-bold">
-                Close Dialog
-            </button>
+            <button onclick="closeContactModal()" class="mt-10 w-full bg-black text-white py-4 hover:bg-gray-800 transition-colors uppercase tracking-[0.2em] text-[10px] font-bold">Close Dialog</button>
         </div>
     </div>
 
     <script>
-        function scrollToContent() {
-            document.getElementById('content').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        const observerOptions = {
-            threshold: 0.15,
-            rootMargin: "0px 0px -50px 0px"
-        };
-
+        function scrollToContent() { document.getElementById('content').scrollIntoView({ behavior: 'smooth' }); }
         const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.reveal-on-scroll').forEach(el => {
-            observer.observe(el);
-        });
-
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+        }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
+        document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
         window.addEventListener('scroll', () => {
             const scrollPosition = window.scrollY;
             const cover = document.getElementById('cover');
